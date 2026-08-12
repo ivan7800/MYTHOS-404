@@ -1,0 +1,68 @@
+{
+  "name": "MYTHOS 404 — Global Research Encyclopedia 8.1",
+  "short_name": "MYTHOS 404",
+  "description": "Atlas mundial modular con 5.161 entidades y 62 tradiciones/corpus activos, separando fichas revisadas de descubrimiento pendiente de verificación.",
+  "id": "./",
+  "start_url": "./#home",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0a0f",
+  "theme_color": "#0b0a0f",
+  "lang": "es",
+  "dir": "ltr",
+  "orientation": "any",
+  "categories": [
+    "education",
+    "books",
+    "reference"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Atlas mundial",
+      "short_name": "Mundo",
+      "url": "./#world"
+    },
+    {
+      "name": "Archivo mundial",
+      "short_name": "Archivo",
+      "url": "./#catalog"
+    },
+    {
+      "name": "Motivos comparados",
+      "short_name": "Motivos",
+      "url": "./#motifs"
+    },
+    {
+      "name": "Laboratorio académico",
+      "short_name": "Academia",
+      "url": "./#academic"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "mythos-404-global-research",
+  "version": "8.1.0",
+  "private": true,
+  "description": "Enciclopedia mundial modular con 5.161 entidades, corpus revisado, descubrimiento trazable, búsqueda fragmentada y controles editoriales reforzados.",
+  "scripts": {
+    "validate": "node tools/validate.mjs",
+    "test": "node --check js/core.js && node --check js/index.js && node --check js/store.js && node --check js/app.js && node --check sw.js && node tools/validate.mjs",
+    "build:data": "node tools/rebuild-index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
