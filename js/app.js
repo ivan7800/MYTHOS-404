@@ -14,9 +14,12 @@
   const sourceById = new Map((D.academic?.sourceCatalog||[]).map(s => [s.id,s]));
   const cultureById = new Map((D.cultures||[]).map(c => [c.id,c]));
   const motifById = new Map((D.motifs||[]).map(m => [m.id,m]));
+  const knowledgePolicy = D.knowledgePolicy || {levels:[]};
+  const knowledgeLevelById = new Map((knowledgePolicy.levels||[]).map(level=>[level.id,level]));
+  const documentedSourceRefs = new Set(knowledgePolicy.documentedSourceRefs||['discovery-deitydb-mit']);
   const routes = ['home','world','motifs','cosmogonies','underworlds','catalog','myths','atlas','journeys','heracles','troy','museum','genealogy','timeline','constellation','compare','quiz','library','academic','oracle','about'];
   const routeTitles = {
-    home:'MYTHOS 404 Global Research Encyclopedia — v8.1', world:'Atlas mundial — MYTHOS 404', motifs:'Motivos comparados — MYTHOS 404', cosmogonies:'Cosmogonías — MYTHOS 404', underworlds:'Inframundos — MYTHOS 404', catalog:'Archivo mundial — MYTHOS 404', myths:'Relatos — MYTHOS 404', atlas:'Atlas griego — MYTHOS 404', journeys:'Rutas griegas — MYTHOS 404', heracles:'Los 12 trabajos — MYTHOS 404', troy:'Guerra de Troya — MYTHOS 404', museum:'Museo griego — MYTHOS 404', genealogy:'Linajes griegos — MYTHOS 404', timeline:'Cronología griega — MYTHOS 404', constellation:'Constelación — MYTHOS 404', compare:'Comparador intercultural — MYTHOS 404', quiz:'Desafío — MYTHOS 404', library:'Mi MYTHOS — MYTHOS 404', academic:'Laboratorio académico mundial — MYTHOS 404', oracle:'Oráculo de Delfos — MYTHOS 404', about:'Fuentes, culturas y método — MYTHOS 404'
+    home:'MYTHOS 404 Knowledge Encyclopedia — v9.1', world:'Atlas mundial — MYTHOS 404', motifs:'Motivos comparados — MYTHOS 404', cosmogonies:'Cosmogonías — MYTHOS 404', underworlds:'Inframundos — MYTHOS 404', catalog:'Archivo mundial — MYTHOS 404', myths:'Relatos — MYTHOS 404', atlas:'Atlas griego — MYTHOS 404', journeys:'Rutas griegas — MYTHOS 404', heracles:'Los 12 trabajos — MYTHOS 404', troy:'Guerra de Troya — MYTHOS 404', museum:'Museo griego — MYTHOS 404', genealogy:'Linajes griegos — MYTHOS 404', timeline:'Cronología griega — MYTHOS 404', constellation:'Constelación — MYTHOS 404', compare:'Comparador intercultural — MYTHOS 404', quiz:'Desafío — MYTHOS 404', library:'Mi MYTHOS — MYTHOS 404', academic:'Laboratorio académico mundial — MYTHOS 404', oracle:'Oráculo de Delfos — MYTHOS 404', about:'Fuentes, culturas y método — MYTHOS 404'
   };
   const typeOrder = ['Todos','Divinidad','Héroe','Criatura','Lugar','Objeto','Figura'];
   const achievementIds = new Set(['primer-paso','explorador','cronista','cazador','olimpico','heroe','oraculo','scholar']);
@@ -60,6 +63,41 @@
   function sourceLabel(id){
     const s=sourceById.get(id); return s?`${s.author} · ${s.work}`:id;
   }
+  function knowledgeStatus(e={}){
+    if(e.knowledgeStatus)return e.knowledgeStatus;
+    if(e.reviewStatus!=='discovery')return 'reviewed';
+    const refs=e.sourceRefs||[];
+    const confidence=String(e.provenance?.evidenceConfidence||'').toUpperCase();
+    return refs.some(ref=>documentedSourceRefs.has(ref))&&e.provenance?.upstreamReviewStatus&&['A','B'].includes(confidence)?'documented':'discovery';
+  }
+  function knowledgeLevel(e){
+    const id=knowledgeStatus(e),fallback={id,label:id==='reviewed'?'Revisada por MYTHOS':id==='documented'?'Documentada externamente':'Descubrimiento',short:id};
+    return knowledgeLevelById.get(id)||fallback;
+  }
+  function completeness(e={}){
+    if(Number.isFinite(Number(e.completeness)))return clamp(Number(e.completeness),0,100);
+    const hasText=(v,min=3)=>typeof v==='string'&&v.trim().length>=min,hasList=v=>Array.isArray(v)&&v.length>0;
+    const generic=/^Entrada de descubrimiento\b/i,status=knowledgeStatus(e);let score=0;
+    if(hasText(e.name))score+=4;if(hasText(e.type))score+=3;if(hasText(e.culture))score+=3;
+    if(hasText(e.tradition)||hasText(e.era))score+=4;if(hasText(e.region))score+=3;if(hasText(e.period)||hasText(e.era))score+=3;
+    if(hasText(e.summary,40)&&!generic.test(e.summary))score+=15;if(hasText(e.domain,12)&&!generic.test(e.domain))score+=10;
+    if(hasList(e.relations))score+=10;if(hasList(e.symbols))score+=5;if(hasList(e.places))score+=5;
+    const refs=e.sourceRefs||[];score+=status==='reviewed'?Math.min(15,8+Math.max(0,refs.length-1)*2):status==='documented'?8:refs.length?3:0;
+    if(status==='documented'){if(hasText(e.externalType||e.provenance?.entityType))score+=4;if(hasText(e.externalCategory||e.provenance?.category))score+=3;}
+    if(hasList(e.passages))score+=8;if(hasList(e.variants))score+=7;if(hasList(e.myths)||hasList(e.motifs))score+=5;
+    return clamp(score,0,100);
+  }
+  function completenessBand(score){return score>=80?'Amplia':score>=60?'Desarrollada':score>=40?'En desarrollo':'Básica';}
+  function externalClassification(e={}){return {type:e.externalType||e.provenance?.entityType||'',category:e.externalCategory||e.provenance?.category||'',confidence:e.provenance?.evidenceConfidence||''};}
+  function cardDomain(e={}){const ext=externalClassification(e);return knowledgeStatus(e)==='documented'&&ext.type?`${ext.type}${ext.category?` · ${ext.category}`:''}`:e.domain;}
+  function missingKnowledge(e={}){
+    const hasText=(v,min=3)=>typeof v==='string'&&v.trim().length>=min,hasList=v=>Array.isArray(v)&&v.length>0,generic=/^Entrada de descubrimiento\b/i,missing=[];
+    if(!hasText(e.summary,40)||generic.test(e.summary))missing.push('síntesis contextual revisada');
+    if(!hasText(e.domain,12)||generic.test(e.domain))missing.push('función o dominio contrastado');
+    if(!hasList(e.relations))missing.push('relaciones y genealogía');if(!hasList(e.symbols))missing.push('símbolos o atributos documentados');if(!hasList(e.places))missing.push('lugares o cultos vinculados');
+    if(knowledgeStatus(e)!=='reviewed')missing.push('revisión editorial MYTHOS');if(!hasList(e.passages))missing.push('pasajes o loci concretos');if(!hasList(e.variants))missing.push('variantes y cautelas');return missing;
+  }
+  function knowledgeStatusHTML(e){const level=knowledgeLevel(e),score=completeness(e);return `<section class="knowledge-status knowledge-${escapeHTML(level.id)}"><div class="knowledge-status-head"><div><p class="eyebrow">MYTHOS Knowledge Standard</p><h3>${escapeHTML(level.label)}</h3></div><span class="knowledge-score" aria-label="Completitud documental ${score} por ciento">${score}%</span></div><div class="knowledge-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${score}" aria-label="Completitud documental"><i style="width:${score}%"></i></div><p>${escapeHTML(level.note||'')}</p><small><strong>${escapeHTML(completenessBand(score))}.</strong> ${escapeHTML(knowledgePolicy.completenessNote||'La completitud mide campos documentales, no certeza histórica.')}</small>${missingKnowledge(e).length?`<details><summary>Qué falta para completar esta ficha</summary><ul>${missingKnowledge(e).slice(0,8).map(x=>`<li>${escapeHTML(x)}</li>`).join('')}</ul></details>`:''}</section>`;}
   function sourceChips(refs=[]){
     return refs.map(id=>{const s=sourceById.get(id);return s?`<span class="source-chip" title="${escapeHTML(s.kind)} · ${escapeHTML(s.period)}">${escapeHTML(s.author)} · ${escapeHTML(s.work)}</span>`:''}).join('');
   }
@@ -104,7 +142,7 @@
     const passagesText=(e.passages||[]).map(p=>`- ${citationText(p.ref,p.loc)} — ${p.why}`).join('\n');
     const variantsText=(e.variants||[]).map(v=>`### ${v.title}\n- A: ${v.a}\n- B: ${v.b}\n- Nota: ${v.note}`).join('\n\n');
     const related=(e.relations||[]).map(r=>entityById.get(r)?.name).filter(Boolean);
-    const md=`# ${e.name}${e.greek?` · ${e.greek}`:''}\n\n**Tipo:** ${e.type} · ${e.era}\n\n**Tradición:** ${cultureById.get(e.culture)?.name||e.tradition||'—'} · ${e.region||'—'}\n\n**Dominio / función:** ${e.domain}\n\n${e.summary}\n\n## Fuentes\n${refs.length?refs.map(x=>`- ${x}`).join('\n'):'- '+e.source}\n\n${passagesText?`## Pasajes orientativos\n${passagesText}\n\n`:''}${variantsText?`## Variantes\n${variantsText}\n\n`:''}## Conexiones\n${related.length?related.map(x=>`- ${x}`).join('\n'):'—'}\n\n## Nota personal\n${state.notes[id]||''}\n\n---\nMYTHOS 404 Global Research Encyclopedia 8.1 · ficha de estudio; no sustituye una edición crítica ni el conocimiento de las comunidades portadoras.\n`;
+    const md=`# ${e.name}${e.greek?` · ${e.greek}`:''}\n\n**Tipo:** ${e.type} · ${e.era}\n\n**Tradición:** ${cultureById.get(e.culture)?.name||e.tradition||'—'} · ${e.region||'—'}\n\n**Madurez documental:** ${knowledgeLevel(e).label}\n\n**Completitud documental:** ${completeness(e)}% (${completenessBand(completeness(e))})\n\n**Dominio / función:** ${e.domain}\n\n${e.summary}\n\n## Fuentes\n${refs.length?refs.map(x=>`- ${x}`).join('\n'):'- '+e.source}\n\n${passagesText?`## Pasajes orientativos\n${passagesText}\n\n`:''}${variantsText?`## Variantes\n${variantsText}\n\n`:''}## Conexiones\n${related.length?related.map(x=>`- ${x}`).join('\n'):'—'}\n\n## Nota personal\n${state.notes[id]||''}\n\n---\nMYTHOS 404 Knowledge Encyclopedia 9.1 · ficha de estudio; no sustituye una edición crítica ni el conocimiento de las comunidades portadoras.\n`;
     const blob=new Blob([md],{type:'text/markdown;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=`mythos-${e.id}.md`;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Ficha Markdown exportada');
   }
@@ -149,7 +187,7 @@
   function renderStats(){
     const counts=Store.counts||{};
     $('#heroStats').innerHTML=[
-      [counts.entities||D.entities.length,'entidades'],[counts.reviewed||D.entities.length,'revisadas'],[counts.discovery||0,'descubrimiento'],[counts.cultures||D.cultures?.length||1,'tradiciones/corpus'],[counts.myths||D.myths.length,'relatos']
+      [counts.entities||D.entities.length,'entidades'],[counts.reviewed||D.entities.length,'revisadas'],[counts.documented||0,'documentadas'],[counts.discovery||0,'discovery'],[counts.cultures||D.cultures?.length||1,'tradiciones/corpus'],[counts.myths||D.myths.length,'relatos']
     ].map(([n,l])=>`<div class="stat"><strong>${n}</strong><span>${l}</span></div>`).join('');
     const cultureMetric=$('#architectureCultureCount');if(cultureMetric)cultureMetric.textContent=String(counts.cultures||D.cultures?.length||0);
     const shardMetric=$('#architectureShardCount');if(shardMetric)shardMetric.textContent=String(Object.keys(window.MYTHOS_INDEX?.shards||{}).length);
@@ -177,10 +215,10 @@
     return D.entities.filter(e=>{
       if(state.type!=='Todos'&&e.type!==state.type)return false;
       if(state.culture!=='all'&&e.culture!==state.culture)return false;
-      const editorial=e.reviewStatus==='discovery'?'discovery':'reviewed';
+      const editorial=knowledgeStatus(e);
       if(state.review!=='all'&&editorial!==state.review)return false;
       if(!q)return true;
-      return normalize([e.name,e.greek,e.type,e.era,e.domain,e.summary,e.tradition,e.region,cultureLabel(e),...(e.symbols||[]),...(e.places||[]),...(e.aliases||[])].join(' ')).includes(q);
+      return normalize([e.name,e.greek,e.type,e.era,e.domain,e.summary,e.tradition,e.region,cultureLabel(e),e.externalType,e.externalCategory,e.provenance?.entityType,e.provenance?.category,...(e.symbols||[]),...(e.places||[]),...(e.aliases||[])].join(' ')).includes(q);
     }).sort((a,b)=>{
       if(!q)return a.name.localeCompare(b.name,'es');
       const an=normalize(a.name),bn=normalize(b.name);
@@ -190,9 +228,8 @@
   }
   function entityCard(e){
     const tags=[cultureLabel(e),e.era,...(e.symbols||[])].filter(Boolean).slice(0,4);
-    const discovery=e.reviewStatus==='discovery';
-    const status=discovery?'Descubrimiento · revisar':(e.academicStatus?.label||'Corpus revisado');
-    return `<button class="entity-card ${discovery?'discovery-card':''}" data-entity="${e.id}"><div><span class="type">${escapeHTML(e.type)} · ${escapeHTML(cultureLabel(e))}</span><h3>${escapeHTML(e.name)}</h3>${e.greek?`<span class="greek-label">${escapeHTML(e.greek)}</span>`:''}<p>${escapeHTML(e.domain)}</p></div><div class="tags">${tags.map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join('')}<span class="tag academic-tag ${discovery?'discovery-tag':''}">${escapeHTML(status)}</span></div></button>`;
+    const statusId=knowledgeStatus(e),level=knowledgeLevel(e),score=completeness(e),unreviewed=statusId!=='reviewed';
+    return `<button class="entity-card ${unreviewed?'discovery-card':''} knowledge-card-${statusId}" data-entity="${e.id}"><div><span class="type">${escapeHTML(e.type)} · ${escapeHTML(cultureLabel(e))}</span><h3>${escapeHTML(e.name)}</h3>${e.greek?`<span class="greek-label">${escapeHTML(e.greek)}</span>`:''}<p>${escapeHTML(cardDomain(e))}</p></div><div class="tags">${tags.map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join('')}<span class="tag academic-tag knowledge-tag knowledge-tag-${statusId}">${escapeHTML(level.short||level.label)}</span><span class="tag">${score}% completa</span></div></button>`;
   }
   let catalogRenderToken=0;
   async function renderCatalog(){
@@ -202,10 +239,10 @@
     if(token!==catalogRenderToken)return;
     const list=filteredEntities(), shown=list.slice(0,state.limit);
     $('#catalogGrid').innerHTML=shown.length?shown.map(entityCard).join(''):'<div class="empty">No hay coincidencias en el bloque cargado. Prueba otro término, tipo o tradición.</div>';
-    const moreShards=state.culture==='all'&&state.review==='discovery'&&!state.query.trim()&&Store.loadedShards().length<Object.keys(window.MYTHOS_INDEX?.shards||{}).length;
+    const moreShards=state.culture==='all'&&['all','discovery'].includes(state.review)&&!state.query.trim()&&Store.loadedShards().length<Object.keys(window.MYTHOS_INDEX?.shards||{}).length;
     $('#loadMore').hidden=state.limit>=list.length&&!moreShards;
     $('#loadMore').textContent=state.limit<list.length?`Mostrar más (${Math.max(0,list.length-state.limit)})`:moreShards?'Cargar siguiente bloque de descubrimiento':'Mostrar más';
-    const status=$('#catalogStatus'); const c=state.culture==='all'?'':` · ${cultureById.get(state.culture)?.name||state.culture}`; const r=state.review==='all'?'':` · ${state.review==='reviewed'?'corpus revisado':'descubrimiento'}`;
+    const status=$('#catalogStatus'); const c=state.culture==='all'?'':` · ${cultureById.get(state.culture)?.name||state.culture}`; const labels={reviewed:'revisadas',documented:'documentadas externamente',discovery:'descubrimiento'}; const r=state.review==='all'?'':` · ${labels[state.review]||state.review}`;
     if(status)status.textContent=`${list.length} entradas cargadas${state.type!=='Todos'?` · ${state.type}`:''}${c}${r}${state.query.trim()?` · búsqueda: ${state.query.trim()}`:''} · índice mundial: ${Store.counts.entities}.`;
   }
 
@@ -230,12 +267,13 @@
       <div class="entity-kicker"><span>${escapeHTML(e.type)}</span><span>·</span><span>${escapeHTML(cultureLabel(e))}</span><span>·</span><span>${escapeHTML(e.region||e.era)}</span>${e.academicStatus?`<span>·</span><span>${escapeHTML(e.academicStatus.label)}</span>`:''}</div>
       <h2>${escapeHTML(e.name)}</h2>${e.greek?`<div class="entity-greek">${escapeHTML(e.greek)}</div>`:''}
       <p class="lead">${escapeHTML(e.summary)}</p>
-      ${e.reviewStatus==='discovery'?`<div class="discovery-warning" role="note"><strong>Entrada de descubrimiento — no verificada académicamente</strong><p>Esta ficha procede de una fuente externa de descubrimiento y se conserva como pista de investigación. Antes de citar su función, genealogía o atribución cultural, contrástala con fuentes primarias o estudios especializados.</p>${(e.alternatives||[]).length?`<small>Variantes catalogadas: ${escapeHTML(e.alternatives.join(', '))}</small>`:''}</div>`:''}
+      ${knowledgeStatusHTML(e)}
+      ${knowledgeStatus(e)==='documented'?`<div class="discovery-warning documented-warning" role="note"><strong>Documentación externa localizada — revisión MYTHOS pendiente</strong><p>Esta entrada está registrada en DeityDB con metadatos de evidencia externa, pero MYTHOS todavía no ha verificado de forma independiente su función, genealogía ni citas. Se muestra como un escalón intermedio entre discovery y corpus revisado.</p>${externalClassification(e).type?`<div class="external-metadata"><span><strong>Tipo upstream</strong>${escapeHTML(externalClassification(e).type)}</span><span><strong>Categoría upstream</strong>${escapeHTML(externalClassification(e).category||'—')}</span><span><strong>Evidencia upstream</strong>${escapeHTML(externalClassification(e).confidence||'—')}</span></div>`:''}${(e.alternatives||[]).length?`<small>Variantes catalogadas: ${escapeHTML(e.alternatives.join(', '))}</small>`:''}</div>`:knowledgeStatus(e)==='discovery'?`<div class="discovery-warning" role="note"><strong>Entrada de descubrimiento — no verificada académicamente</strong><p>Esta ficha procede de una fuente externa de descubrimiento y se conserva como pista de investigación. Antes de citar su función, genealogía o atribución cultural, contrástala con fuentes primarias o estudios especializados.</p>${(e.alternatives||[]).length?`<small>Variantes catalogadas: ${escapeHTML(e.alternatives.join(', '))}</small>`:''}</div>`:''}
       <div class="entity-actions"><button class="secondary" data-favorite="${e.id}">${fav?'★ Guardado':'☆ Guardar'}</button><button class="secondary" data-center-graph="${e.id}">✦ Ver en constelación</button><button class="secondary" data-speak="${e.id}">◉ Escuchar nombre</button><button class="secondary" data-copy-link="entity" data-copy-id="${e.id}">↗ Copiar enlace</button><button class="secondary" data-export-entity="${e.id}">⇩ Exportar ficha .md</button></div>
-      <div class="cultural-context"><strong>${escapeHTML(cultureLabel(e))}</strong><span>${escapeHTML(e.culturalStatus||cultureById.get(e.culture)?.status||'')}</span><p>${escapeHTML(cultureById.get(e.culture)?.caution||'Lee la ficha dentro de su contexto cultural y documental.')}</p></div><div class="detail-grid"><div class="detail-box"><small>Dominio / función</small><p>${escapeHTML(e.domain)}</p></div><div class="detail-box"><small>Símbolos</small><p>${escapeHTML(arrText(e.symbols))}</p></div><div class="detail-box"><small>Lugares vinculados</small><p>${escapeHTML(arrText(e.places))}</p></div><div class="detail-box"><small>Conexiones registradas</small><p>${related.length}</p></div></div>
+      <div class="cultural-context"><strong>${escapeHTML(cultureLabel(e))}</strong><span>${escapeHTML(e.culturalStatus||cultureById.get(e.culture)?.status||'')}</span><p>${escapeHTML(cultureById.get(e.culture)?.caution||'Lee la ficha dentro de su contexto cultural y documental.')}</p></div><div class="detail-grid"><div class="detail-box"><small>${knowledgeStatus(e)==='documented'&&externalClassification(e).type?'Clasificación externa · no verificada':'Dominio / función'}</small><p>${escapeHTML(knowledgeStatus(e)==='documented'&&externalClassification(e).type?`${externalClassification(e).type}${externalClassification(e).category?` · ${externalClassification(e).category}`:''}`:e.domain)}</p></div><div class="detail-box"><small>Símbolos</small><p>${escapeHTML(arrText(e.symbols))}</p></div><div class="detail-box"><small>Lugares vinculados</small><p>${escapeHTML(arrText(e.places))}</p></div><div class="detail-box"><small>Conexiones registradas</small><p>${related.length}</p></div></div>
       ${related.length?`<div class="subheading">Conexiones</div><div class="relation-cloud">${related.map(r=>`<button data-entity="${r.id}">${escapeHTML(r.name)} · ${escapeHTML(r.type)}</button>`).join('')}</div>`:''}
       ${relatedMyths.length?`<div class="source-note"><strong>Relatos relacionados</strong><div class="relation-cloud">${relatedMyths.map(m=>`<button data-myth="${m.id}">${escapeHTML(m.title)}</button>`).join('')}</div></div>`:''}
-      ${(e.motifs||[]).length?`<div class="source-note motif-note"><strong>Motivos comparativos</strong><div class="relation-cloud">${e.motifs.map(mid=>{const m=motifById.get(mid);return m?`<button type="button" data-route="motifs">${escapeHTML(m.name)}</button>`:''}).join('')}</div><small>Paralelos analíticos; no equivalencias culturales.</small></div>`:''}<div class="source-note"><strong>Orientación documental:</strong> ${escapeHTML((e.sourceRefs||[]).length?sourceLabel(e.sourceRefs[0]):(e.source||'—'))}${e.reviewStatus==='discovery'?'<br><small>Procedencia de catálogo para investigación; no equivale a validación académica.</small>':''}</div>
+      ${(e.motifs||[]).length?`<div class="source-note motif-note"><strong>Motivos comparativos</strong><div class="relation-cloud">${e.motifs.map(mid=>{const m=motifById.get(mid);return m?`<button type="button" data-route="motifs">${escapeHTML(m.name)}</button>`:''}).join('')}</div><small>Paralelos analíticos; no equivalencias culturales.</small></div>`:''}<div class="source-note"><strong>Orientación documental:</strong> ${escapeHTML((e.sourceRefs||[]).length?sourceLabel(e.sourceRefs[0]):(e.source||'—'))}${knowledgeStatus(e)==='reviewed'?'':knowledgeStatus(e)==='documented'?'<br><small>Registro documental externo; pendiente de revisión MYTHOS.</small>':'<br><small>Procedencia de catálogo para investigación; no equivale a validación académica.</small>'}</div>
       ${academicDossier(e)}
       <section class="research-note"><div><p class="eyebrow">Cuaderno local</p><h3>Tu nota de investigación</h3></div><textarea data-research-note="${escapeHTML(e.id)}" maxlength="6000" aria-label="Nota de investigación sobre ${escapeHTML(e.name)}" placeholder="Hipótesis, comparación de fuentes, dudas, referencias que quieras revisar…">${escapeHTML(note)}</textarea><small>Guardado automáticamente solo en este navegador. Se incluye en la copia JSON y en la exportación Markdown.</small></section>
     </article>`;
@@ -281,7 +319,7 @@
     $$('.world-node').forEach(n=>n.classList.toggle('active',n.dataset.cultureMap===id));
     const stat=D.cultureStats?.[id]||{};const count=stat.entities??D.entities.filter(e=>e.culture===id).length,myths=stat.myths??D.myths.filter(m=>m.culture===id).length,sources=stat.sources??(D.academic?.sourceCatalog||[]).filter(s=>s.tradition===c.name).length;
     const loaded=Store.isCultureLoaded(id);
-    const panel=$('#worldCulturePanel');if(panel)panel.innerHTML=`<p class="eyebrow">${escapeHTML(c.region)} · ${escapeHTML(c.period)}</p><div class="culture-panel-title"><span>${escapeHTML(c.glyph)}</span><h2>${escapeHTML(c.name)}</h2></div><p>${escapeHTML(c.desc)}</p><div class="world-panel-stats"><span><strong>${count}</strong> fichas</span><span><strong>${myths}</strong> relatos</span><span><strong>${sources}</strong> fuentes</span></div><div class="module-status ${loaded?'ready':''}"><span>${loaded?'●':'○'}</span><strong>${loaded?'Paquete cargado':'Paquete modular'}</strong><small>${loaded?'Disponible instantáneamente en esta sesión.':'Se carga solo cuando abres una ficha de esta tradición.'}</small></div><div class="cultural-warning"><strong>Contexto</strong><p>${escapeHTML(c.caution)}</p></div><div class="culture-panel-actions"><button class="primary" data-open-culture="${c.id}">Explorar ${escapeHTML(c.name)}</button><button class="secondary" data-load-culture="${c.id}">${loaded?'Paquete cargado':'Cargar paquete'}</button><button class="secondary" data-copy-link="culture" data-copy-id="${c.id}">↗ Copiar enlace</button></div>`;
+    const panel=$('#worldCulturePanel');if(panel)panel.innerHTML=`<p class="eyebrow">${escapeHTML(c.region)} · ${escapeHTML(c.period)}</p><div class="culture-panel-title"><span>${escapeHTML(c.glyph)}</span><h2>${escapeHTML(c.name)}</h2></div><p>${escapeHTML(c.desc)}</p><div class="world-panel-stats"><span><strong>${count}</strong> fichas</span><span><strong>${myths}</strong> relatos</span><span><strong>${sources}</strong> fuentes</span></div><div class="culture-knowledge-mini" aria-label="Madurez documental de ${escapeHTML(c.name)}"><span><strong>${stat.reviewed||0}</strong> revisadas</span><span><strong>${stat.documented||0}</strong> documentadas</span><span><strong>${stat.discovery||0}</strong> discovery</span><span><strong>${stat.averageCompleteness||0}%</strong> completitud media</span></div><div class="module-status ${loaded?'ready':''}"><span>${loaded?'●':'○'}</span><strong>${loaded?'Paquete cargado':'Paquete modular'}</strong><small>${loaded?'Disponible instantáneamente en esta sesión.':'Se carga solo cuando abres una ficha de esta tradición.'}</small></div><div class="cultural-warning"><strong>Contexto</strong><p>${escapeHTML(c.caution)}</p></div><div class="culture-panel-actions"><button class="primary" data-open-culture="${c.id}">Explorar ${escapeHTML(c.name)}</button><button class="secondary" data-load-culture="${c.id}">${loaded?'Paquete cargado':'Cargar paquete'}</button><button class="secondary" data-copy-link="culture" data-copy-id="${c.id}">↗ Copiar enlace</button></div>`;
     if(scroll){Store.prefetchCulture(id);if(matchMedia('(max-width:900px)').matches)panel?.scrollIntoView({behavior:'smooth',block:'start'});}
   }
   function openCultureCatalog(id){Store.prefetchCulture(id);state.culture=id;state.type='Todos';state.review='all';state.query='';state.limit=32;const q=$('#catalogSearch');if(q)q.value='';renderCatalog();setRoute('catalog');}
@@ -401,7 +439,7 @@
   }
 
   function exportData(){
-    const payload={app:'MYTHOS 404',version:D.meta?.version||'8.1.0',exported:new Date().toISOString(),theme:state.theme,favorites:[...state.favorites],viewed:[...state.viewed],achievements:[...state.achievements],quizBest:state.quizBest,notes:state.notes};
+    const payload={app:'MYTHOS 404',version:D.meta?.version||'9.1.0',exported:new Date().toISOString(),theme:state.theme,favorites:[...state.favorites],viewed:[...state.viewed],achievements:[...state.achievements],quizBest:state.quizBest,notes:state.notes};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download='mythos-404-backup.json';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Copia exportada');
   }
@@ -455,7 +493,10 @@
   function renderAcademic(){
     if(!D.academic)return;
     const stats=$('#academicStats');
-    if(stats)stats.innerHTML=[[D.academic.sourceCatalog.length,'familias de fuentes'],[D.cultures?.length||1,'tradiciones'],[D.academic.variantCount,'dossiers de variantes'],[Object.keys(state.notes).length,'fichas anotadas']].map(([n,l])=>`<div><strong>${n}</strong><span>${l}</span></div>`).join('');
+    const kc=Store.counts||D.knowledgeStats?.counts||{};
+    if(stats)stats.innerHTML=[[kc.reviewed||0,'revisadas'],[kc.documented||0,'documentadas externamente'],[kc.discovery||0,'descubrimiento'],[D.knowledgeStats?.averageCompleteness||0,'completitud media %'],[D.academic.sourceCatalog.length,'familias de fuentes'],[Object.keys(state.notes).length,'fichas anotadas']].map(([n,l])=>`<div><strong>${n}</strong><span>${l}</span></div>`).join('');
+    const knowledge=$('#knowledgeDashboard');if(knowledge){const total=kc.entities||D.knowledgeStats?.counts?.total||1,reviewed=kc.reviewed||0,documented=kc.documented||0,discovery=kc.discovery||0;knowledge.innerHTML=`<div class="knowledge-overview"><article><span>01</span><h3>Revisada por MYTHOS</h3><strong>${reviewed}</strong><p>${((reviewed/total)*100).toFixed(1)}% del archivo. Corpus editorial integrado.</p></article><article><span>02</span><h3>Documentada externamente</h3><strong>${documented}</strong><p>${((documented/total)*100).toFixed(1)}% del archivo. Trazabilidad externa localizada; revisión MYTHOS pendiente.</p></article><article><span>03</span><h3>Descubrimiento</h3><strong>${discovery}</strong><p>${((discovery/total)*100).toFixed(1)}% del archivo. Pistas que todavía no deben citarse como fichas académicas.</p></article></div><div class="knowledge-bands">${Object.entries(D.knowledgeStats?.bands||{}).map(([band,n])=>`<div><span>${escapeHTML(band)}</span><strong>${n}</strong></div>`).join('')}</div>`;}
+    const queue=$('#editorialQueue');if(queue){const items=D.editorialQueue||[];queue.innerHTML=items.length?items.map((q,i)=>`<button type="button" class="research-queue-card" data-entity="${escapeHTML(q.id)}"><span>${String(i+1).padStart(2,'0')} · ${escapeHTML(cultureById.get(q.culture)?.name||q.tradition||q.culture)}</span><strong>${escapeHTML(q.name)}</strong><small>${q.completeness}% completa · faltan ${escapeHTML((q.missing||[]).join(', ')||'revisión editorial')}</small></button>`).join(''):'<div class="empty">No hay discovery pendientes en la cola editorial.</div>';}
     const method=$('#methodGrid');if(method)method.innerHTML=D.academic.methodology.map(m=>`<article><h3>${escapeHTML(m.title)}</h3><p>${escapeHTML(m.text)}</p></article>`).join('');
     const select=$('#academicSourceFilter');
     if(select&&select.options.length===1){
@@ -474,7 +515,7 @@
 
   function searchAll(q){
     const nq=normalize(q.trim());if(!nq)return[];
-    const entities=D.entities.map(e=>{const name=normalize(e.name),discovery=e.reviewStatus==='discovery';return {kind:'entity',id:e.id,title:e.name,meta:`${cultureLabel(e)} · ${e.type} · ${discovery?'Descubrimiento pendiente':'Corpus revisado'}`,score:(name===nq?0:name.startsWith(nq)?2:name.includes(nq)?4:6)+(discovery?1:0),text:normalize([e.name,e.greek,e.domain,e.tradition,e.region,cultureLabel(e),...(e.symbols||[]),...(e.places||[]),...(e.aliases||[])].join(' '))}}).filter(x=>x.text.includes(nq));
+    const entities=D.entities.map(e=>{const name=normalize(e.name),status=knowledgeStatus(e),rank=status==='reviewed'?0:status==='documented'?1:2;return {kind:'entity',id:e.id,title:e.name,meta:`${cultureLabel(e)} · ${e.type} · ${knowledgeLevel(e).short||knowledgeLevel(e).label}`,score:(name===nq?0:name.startsWith(nq)?2:name.includes(nq)?4:6)+rank,text:normalize([e.name,e.greek,e.domain,e.tradition,e.region,cultureLabel(e),e.externalType,e.externalCategory,e.provenance?.entityType,e.provenance?.category,...(e.symbols||[]),...(e.places||[]),...(e.aliases||[])].join(' '))}}).filter(x=>x.text.includes(nq));
     const myths=D.myths.map(m=>({kind:'myth',id:m.id,title:m.title,meta:`Relato · ${cultureById.get(m.culture)?.name||m.era} · ${m.era}`,score:normalize(m.title).startsWith(nq)?0:1,text:normalize(m.title+' '+m.summary)})).filter(x=>x.text.includes(nq));
     return entities.concat(myths).sort((a,b)=>a.score-b.score||a.title.localeCompare(b.title,'es')).slice(0,16);
   }
@@ -558,7 +599,7 @@
       if(note){saveResearchNote(note.dataset.researchNote,note.value);return;}
     });
     $('#searchOpen').addEventListener('click',openSearch);$('#themeOpen').addEventListener('click',openTheme);$('#menuOpen').addEventListener('click',openMenu);$('#mobileMore').addEventListener('click',openMenu);$('#surpriseBtn').addEventListener('click',surprise);
-    $('#catalogSearch').addEventListener('input',e=>{state.query=e.target.value;state.limit=32;renderCatalog();});$('#cultureFilter')?.addEventListener('change',e=>{state.culture=e.target.value;state.limit=32;renderCatalog();});$('#reviewFilter')?.addEventListener('change',e=>{state.review=e.target.value;state.limit=32;renderCatalog();});$('#loadMore').addEventListener('click',async()=>{if(state.culture==='all'&&state.review==='discovery'&&!state.query.trim()&&state.limit>=filteredEntities().length)await Store.loadNextShard();state.limit+=32;renderCatalog();});$('#globalSearch').addEventListener('input',renderGlobalSearch);$('#oracleForm').addEventListener('submit',oracleSubmit);
+    $('#catalogSearch').addEventListener('input',e=>{state.query=e.target.value;state.limit=32;renderCatalog();});$('#cultureFilter')?.addEventListener('change',e=>{state.culture=e.target.value;state.limit=32;renderCatalog();});$('#reviewFilter')?.addEventListener('change',e=>{state.review=e.target.value;state.limit=32;renderCatalog();});$('#loadMore').addEventListener('click',async()=>{if(state.culture==='all'&&['all','discovery'].includes(state.review)&&!state.query.trim()&&state.limit>=filteredEntities().length)await Store.loadNextShard();state.limit+=32;renderCatalog();});$('#globalSearch').addEventListener('input',renderGlobalSearch);$('#oracleForm').addEventListener('submit',oracleSubmit);
     $('#academicSourceFilter')?.addEventListener('change',e=>{state.academicSource=e.target.value;renderSourceCorpus();});$('#glossarySearch')?.addEventListener('input',e=>{state.glossaryQuery=e.target.value;renderGlossary();});
     $('#compareA').addEventListener('change',renderCompare);$('#compareB').addEventListener('change',renderCompare);$('#constellationSelect').addEventListener('change',e=>setConstellation(e.target.value));$('#constellationRandom').addEventListener('click',()=>{const pool=D.entities.filter(e=>e.reviewStatus!=='discovery');if(pool.length)setConstellation(pool[Math.floor(Math.random()*pool.length)].id);});$('#constellationCanvas').addEventListener('click',canvasClick);$('#importData').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)importData(f);e.target.value='';});
     window.addEventListener('resize',()=>{if(state.route==='constellation')resizeConstellation();});window.addEventListener('hashchange',routeFromHash);window.addEventListener('popstate',routeFromHash);
