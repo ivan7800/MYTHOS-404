@@ -1,7 +1,7 @@
 'use strict';
 
-const VERSION = '8.1.0';
-const CACHE_PREFIX = 'mythos-404-global-research-';
+const VERSION = '9.1.0';
+const CACHE_PREFIX = 'mythos-404-knowledge-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 const OFFLINE_PAGE = './index.html';
 const CORE = [

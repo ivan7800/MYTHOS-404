@@ -1,23 +1,38 @@
-# Seguridad y privacidad — MYTHOS 404 v8.1.0 Final
+# Seguridad — MYTHOS 404 Knowledge Encyclopedia v9.0
 
 ## Modelo
 
-- PWA estática, sin backend, cuentas, telemetría ni secretos de servidor.
-- Favoritos, notas y progreso permanecen en `localStorage` salvo exportación explícita del usuario.
-- No hay dependencias runtime externas; chunks y shards se cargan desde el mismo origen.
+Aplicación estática, local-first y sin backend propio. No hay cuentas, autenticación, base de datos remota, analítica ni telemetría runtime.
 
-## Controles aplicados
+## Superficie de datos
 
-- CSP local-first mediante `<meta http-equiv="Content-Security-Policy">`.
-- Renderizado dinámico con escape de contenido textual antes de introducirlo en HTML.
-- Importación JSON con límite de **1 MiB**, validación de identidad de la app, filtrado de IDs y límites de texto.
-- Service Worker v8.1 limitado a su `registration.scope` y a una caché de versión explícita.
-- Registro del Service Worker con `updateViaCache: 'none'`.
-- Sin ejecución de HTML/JavaScript procedente de las importaciones del usuario.
-- Sin credenciales, tokens ni claves privadas en el paquete.
+Se guardan localmente preferencias, favoritos, progreso y notas de investigación mediante `localStorage`. La exportación/importación JSON es explícita.
 
-## Riesgos residuales
+La importación:
 
-GitHub Pages no ofrece al proyecto control completo sobre cabeceras HTTP de seguridad personalizadas; esta edición usa CSP por meta y arquitectura same-origin. Una política de cabeceras gestionada por CDN/proxy sería una mejora opcional para un despliegue con requisitos empresariales más estrictos.
+- limita tamaño;
+- comprueba identidad de aplicación;
+- sanea tipos/longitudes;
+- no ejecuta contenido importado.
 
-Los datos discovery son contenido editorial, no datos personales. La revisión de licencias/procedencia debe continuar antes de reutilizar material descriptivo de terceros; por esa razón v8.1 omite los blurbs no revisados del catálogo CC0 y conserva solo metadatos de descubrimiento y trazabilidad.
+## XSS
+
+La UI utiliza escapado HTML para contenido dinámico antes de interpolarlo en plantillas. Los datasets son locales y el proyecto no carga scripts de terceros en runtime.
+
+## CSP
+
+`index.html` incluye una CSP local-first con `object-src 'none'`, `base-uri 'none'` y `form-action 'self'`.
+
+## Service Worker
+
+La caché está versionada (`9.0.0`), limitada al scope de la aplicación y elimina versiones anteriores del mismo prefijo durante `activate`.
+
+## Privacidad
+
+Las notas de investigación permanecen en el navegador salvo que el usuario exporte manualmente una copia.
+
+## Riesgos pendientes
+
+- Cualquier aplicación que use `localStorage` comparte el riesgo del dispositivo/perfil local: no guardar secretos.
+- La seguridad de GitHub Pages/HTTPS depende de la plataforma de hosting.
+- Antes de monetización o integración de servicios externos debe rehacerse el threat model.

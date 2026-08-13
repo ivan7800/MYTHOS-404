@@ -1,54 +1,88 @@
-# Arquitectura — MYTHOS 404 Global Research v8.1 Final
+# Arquitectura — MYTHOS 404 Knowledge Encyclopedia v9.1
 
 ## Objetivo
 
-Escalar a decenas de miles de entradas sin cargar un catálogo mundial monolítico ni mezclar contenido revisado con candidatos de investigación.
+Mantener una enciclopedia estática de miles de entidades sin convertir el arranque en una descarga monolítica, preservando deep links, búsqueda global, funcionamiento local-first y GitHub Pages.
 
-## Arranque
-
-```text
-index.html
-   ↓
-js/core.js          metadatos, culturas, fuentes y módulos comunes
-   ↓
-js/index.js         1.022 revisadas + 120 relatos + 5.161 locators + manifiesto de shards
-   ↓
-js/store.js         loader, caché, búsqueda progresiva y lazy loading
-   ↓
-js/app.js           interfaz
-```
-
-El bootstrap descriptivo no incluye las 4.139 fichas discovery completas.
-
-## Búsqueda en dos niveles
-
-1. **Rápida:** se consulta el corpus revisado y el shard probable según nombre/alias.
-2. **Exhaustiva bajo demanda:** la interfaz ofrece «Buscar también por tema en todo el índice» y carga los ocho shards solo cuando el usuario lo solicita.
-
-Los shards son `abc`, `def`, `ghi`, `jkl`, `mnop`, `qrs`, `tuv` y `wxyz`. El Store deduplica resultados por ID.
-
-## Locators y deep links
-
-`js/index.js` conserva pares mínimos `id → culture` para todas las entidades. Por eso `#entity/<id>` puede resolver una ficha discovery sin precargar su shard. Los relatos y culturas usan `#myth/<id>` y `#culture/<id>`.
-
-## Chunks culturales
-
-Cada tradición/corpus vive en `data/cultures/<id>.js`. Abrir una ficha sigue la cadena:
+## Capas de datos
 
 ```text
-ID → locator → culture → chunk cultural → ficha completa
+js/core.js       metadatos globales, estadísticas, fuentes, rutas y cola editorial
+js/index.js      1.027 fichas revisadas + locators + mapas de chunks/shards
+data/cultures/   62 chunks culturales con el corpus completo
+data/index/      8 shards progresivos para 4.127 entradas externas
+js/store.js      caché, carga bajo demanda y resolución de entidades
+js/app.js        interfaz, rutas, vistas, exportación y Laboratorio Académico
 ```
+
+El bootstrap contiene solo las **1.027 fichas revisadas**. Las **4.127 entradas externas** (181 documentadas + 3.946 discovery) viven en ocho shards de búsqueda y 62 paquetes culturales.
+
+## Flujo de búsqueda
+
+1. `Store.search()` consulta el índice raíz ya cargado.
+2. Si la consulta necesita ampliar resultados, determina el shard por clave normalizada.
+3. El shard se descarga una sola vez y queda cacheado en memoria.
+4. Para abrir una ficha se usa el locator `id → culture` y se carga únicamente el chunk cultural necesario.
+5. Los filtros que necesitan recorrer una clase global concreta pueden precargar los shards de forma explícita.
+
+## Deep links
+
+Los **5.154 locators** permiten resolver `#entity/<id>` sin descargar todos los shards. Además, `core.entityRedirects` conserva **7 IDs legacy** de registros consolidados y los redirige a la entidad canónica, evitando romper enlaces antiguos.
+
+## Knowledge pipeline
+
+`tools/rebuild-index.mjs` recorre el corpus y reconstruye:
+
+- índice de revisadas;
+- locators;
+- shards externos;
+- `knowledgeStatus`;
+- completitud documental;
+- estadísticas por cultura;
+- bandas globales;
+- uso de fuentes;
+- índice de variantes;
+- cola editorial de 24 candidatos;
+- redirects de consolidación de IDs legacy;
+- `CULTURE_INDEX.md`.
+
+La cola editorial excluye placeholders entre corchetes y pseudo-corpus `discovery-*`, limita candidatos por cultura y **no cambia automáticamente el estado editorial**.
+
+## Estado v9.1
+
+- 5.154 entidades.
+- 1.027 revisadas.
+- 181 documentadas externamente.
+- 3.946 discovery.
+- 120 relatos.
+- 62 culturas/chunks.
+- 8 shards.
+- 144 familias de fuentes/procedencias.
+- completitud media 40%.
 
 ## PWA y caché
 
-El shell se precachea; shards y chunks culturales se cachean al solicitarlos. v8.1 limita el Service Worker a su propio scope y consulta la caché nombrada de la versión actual, reduciendo interferencias con despliegues anteriores o apps vecinas.
+El Service Worker precachea únicamente el shell esencial. Shards y chunks se almacenan tras su primer uso. La caché está versionada como `9.1.0` y limitada al scope de la instalación.
 
-## Build reproducible
+Esta estrategia evita precachear varios megabytes de datos que muchos usuarios no consultarán.
 
-`tools/rebuild-index.mjs` lee los 62 chunks y regenera estadísticas, fuentes usadas, variantes, índice revisado, locators y ocho shards. `tools/validate.mjs` actúa como quality gate y además ejecuta smoke tests HTTP/Store.
+## Seguridad
 
-## Deuda técnica controlada
+- CSP local-first.
+- Sin scripts runtime de terceros.
+- Sin backend ni secretos.
+- Importaciones JSON limitadas y validadas.
+- Datos persistentes restringidos al navegador del usuario.
 
-- `js/app.js` sigue siendo un módulo grande y será el siguiente candidato a dividir por features.
-- Grecia ronda 900 KiB y debería subdividirse si continúa creciendo.
-- Por encima de 10.000–20.000 entradas convendrá fragmentar también el locator y considerar un índice temático generado más compacto.
+## Rendimiento estructural de la build validada
+
+- bootstrap sin imágenes: ~687,0 KiB;
+- índice raíz: ~369,7 KiB;
+- mayor shard: ~260,5 KiB;
+- mayor chunk: ~975,4 KiB (griego).
+
+El chunk griego es el principal candidato a subdivisión si la expansión continúa.
+
+## Restricción de proyecto
+
+La distribución mantiene **99 archivos**, por debajo del límite operativo de 100. Cualquier ampliación estructural debe preferir regenerar o subdividir de forma compensada en lugar de añadir archivos indiscriminadamente.

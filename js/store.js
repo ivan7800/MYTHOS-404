@@ -24,13 +24,15 @@
     return item;
   };
 
-  // v8 boots only the reviewed corpus. Discovery metadata is loaded from search shards on demand.
+  // v9 boots only the reviewed corpus. External documentation and discovery metadata load from search shards on demand.
   const entities = inflateRows(index.entities, index.entityFields || []).map(hydrateStub);
   const myths = inflateRows(index.myths, index.mythFields || []).map(item => ({ ...item, _loaded:false }));
   const locators = inflateRows(index.locators, index.locatorFields || []);
   const entityMap = new Map(entities.map(item => [item.id, item]));
   const mythMap = new Map(myths.map(item => [item.id, item]));
   const locatorMap = new Map(locators.map(item => [item.id, item.culture]));
+  const redirects = core.entityRedirects || {};
+  const canonicalEntityId = id => redirects[id] || id;
   const loadedCultures = new Set();
   const pendingCultures = new Map();
   const loadedShards = new Set();
@@ -109,18 +111,18 @@
   function shardForQuery(value){const c=normalizedFirst(value);if('abc'.includes(c))return'abc';if('def'.includes(c))return'def';if('ghi'.includes(c))return'ghi';if('jkl'.includes(c))return'jkl';if('mnop'.includes(c))return'mnop';if('qrs'.includes(c))return'qrs';if('tuv'.includes(c))return'tuv';return'wxyz';}
   async function ensureSearch(query){if(!String(query||'').trim())return;await loadShard(shardForQuery(query));}
   async function loadNextShard(){const order=index.shardOrder||Object.keys(index.shards||{});while(nextShardIndex<order.length&&loadedShards.has(order[nextShardIndex]))nextShardIndex++;if(nextShardIndex>=order.length)return null;return loadShard(order[nextShardIndex++]);}
-  async function ensureCatalog({culture='all',review='all',query=''}={}){if(culture&&culture!=='all'){await loadCulture(culture);return;}if(String(query).trim()){await ensureSearch(query);return;}if(review==='discovery'&&loadedShards.size===0)await loadNextShard();}
+  async function ensureCatalog({culture='all',review='all',query=''}={}){if(culture&&culture!=='all'){await loadCulture(culture);return;}if(String(query).trim()){await ensureSearch(query);return;}if(review==='documented'){await loadAllShards();return;}if(review==='discovery'&&loadedShards.size===0)await loadNextShard();}
   async function loadAllShards(){for(const key of index.shardOrder||Object.keys(index.shards||{}))await loadShard(key);return {shards:loadedShards.size,entities:entities.length};}
 
-  async function loadEntity(id){let entity=entityMap.get(id);if(entity?._loaded)return entity;const culture=entity?.culture||locatorMap.get(id);if(!culture)return null;await loadCulture(culture);return entityMap.get(id)||null;}
+  async function loadEntity(id){const canonical=canonicalEntityId(id);let entity=entityMap.get(canonical);if(entity?._loaded)return entity;const culture=entity?.culture||locatorMap.get(canonical);if(!culture)return null;await loadCulture(culture);return entityMap.get(canonical)||null;}
   async function loadMyth(id){const myth=mythMap.get(id);if(!myth)return null;if(!myth._loaded)await loadCulture(myth.culture);return mythMap.get(id)||null;}
   function prefetchCulture(id){if(!index.chunks[id]||loadedCultures.has(id)||pendingCultures.has(id))return;const start=()=>loadCulture(id).catch(()=>{});if('requestIdleCallback'in window)requestIdleCallback(start,{timeout:1800});else setTimeout(start,250);}
   async function loadCultures(ids=[]){return Promise.all([...new Set(ids)].filter(Boolean).map(loadCulture));}
   async function loadAll({concurrency=4}={}){const ids=Object.keys(index.chunks).filter(id=>!loadedCultures.has(id)),queue=[...ids];const workers=Array.from({length:Math.max(1,Math.min(concurrency,8))},async()=>{while(queue.length)await loadCulture(queue.shift());});await Promise.all(workers);return {cultures:loadedCultures.size,entities:entityMap.size,myths:mythMap.size};}
-  function cultureForEntity(id){return entityMap.get(id)?.culture||locatorMap.get(id)||null;}
+  function cultureForEntity(id){const canonical=canonicalEntityId(id);return entityMap.get(canonical)?.culture||locatorMap.get(canonical)||null;}
   function cultureForMyth(id){return mythMap.get(id)?.culture||null;}
   function isCultureLoaded(id){return loadedCultures.has(id);}
-  function hasEntity(id){return entityMap.has(id)||locatorMap.has(id);}
+  function hasEntity(id){const canonical=canonicalEntityId(id);return entityMap.has(canonical)||locatorMap.has(canonical);}
 
   window.MYTHOS_STORE=Object.freeze({
     version:index.version,loadCulture,loadCultures,loadEntity,loadMyth,loadAll,prefetchCulture,cultureForEntity,cultureForMyth,isCultureLoaded,

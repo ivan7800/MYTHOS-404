@@ -1,23 +1,39 @@
 # Changelog
 
-## 8.1.0 — Final Audit
+## 9.1.0 — Knowledge Expansion I — 2026-08-13
 
-- Corrige cinco corpus discovery vacíos mediante reasignación trazable por ruta de procedencia: Polinesia (46), Melanesia (38), Micronesia (30), Indonesia (23) y Vodou (43).
-- Neutraliza 3.096 blurbs coloquiales/no revisados del catálogo CC0; conserva nombre, alias y procedencia.
-- Corrige contadores de fuentes para usar `sourceRefs` realmente presentes en cada chunk.
-- Reposiciona nodos del atlas y añade validación de solapes exactos.
-- Añade búsqueda global temática bajo demanda sobre los ocho shards.
-- Refuerza ARIA, tipos de botón, labels y estados de carga.
-- Aísla Service Worker por scope/caché de versión y registra con `updateViaCache: none`.
-- Amplía `tools/validate.mjs` con HTTP smoke, Store smoke y nuevas invariantes editoriales/PWA.
-- Actualiza documentación, manifest y versión a **8.1.0 Final**.
+- Revisados 8 conceptos griegos con loci antiguos: 5 promociones netas, 3 fichas canónicas enriquecidas y 7 registros duplicados consolidados.
+- Añadidos pasajes y cautelas para Melíades, Náyades, Oceánides, Nereidas, Ninfas Coricias, Tíades, Ménades y Hamadríades.
+- Reescritas las síntesis de 181 fichas documentadas externamente para separar metadatos upstream de revisión MYTHOS.
+- Añadida cola editorial automática de 24 candidatos con prioridad, completitud y campos pendientes.
+- Añadidos 7 redirects legacy para preservar deep links tras la consolidación canónica.
+- La cola excluye placeholders y pseudo-corpus de discovery.
+- Estadísticas actualizadas a 5.154 entidades: 1.027 revisadas + 181 documentadas + 3.946 discovery; completitud media 40%.
+- Runtime, PWA, Service Worker, documentación y quality gate alineados a 9.1.0.
 
-## 8.0.0 — Global Research
+## 9.0.0 — Knowledge Edition — 2026-08-13
 
-- Escala a **5.161 entidades**: 1.022 revisadas + 4.139 discovery.
-- Amplía a **62 tradiciones/corpus**, 144 procedencias y 8 shards progresivos.
-- Añade 5.161 locators para deep links sin precargar discovery.
+### Conocimiento y rigor editorial
 
-## 7.0.0 — Research Expansion
+- Nuevo **MYTHOS Knowledge Standard** con tres niveles: revisada, documentada externamente y discovery.
+- 181 entradas DeityDB A/B pasan a “documentada externamente”; **ninguna** se promueve automáticamente a revisada.
+- 20 entradas DeityDB C/D permanecen en discovery.
+- Nuevo indicador de **completitud documental** por ficha (0–100) con cautela explícita de que no mide certeza histórica.
+- Cada ficha enumera campos pendientes para orientar la investigación.
+- Exportación Markdown incluye madurez y completitud.
+- Dashboard de conocimiento en Academia.
+- Atlas mundial muestra revisadas/documentadas/discovery y completitud media por corpus.
+- Filtro específico “Documentadas externamente”.
 
-- Primera edición con 3.000 entidades y dos capas editoriales.
+### Arquitectura y UX
+
+- Índice ligero incorpora `knowledgeStatus` y `completeness`.
+- Seleccionar “Documentadas externamente” carga los shards necesarios para no mostrar una lista parcial.
+- “Todo el archivo” y discovery conservan expansión progresiva.
+- `CULTURE_INDEX.md` se regenera desde la build.
+- Service Worker y manifest actualizados a 9.0.0.
+
+### QA
+
+- Quality gate comprueba tres niveles de madurez, cobertura de shards y rango de completitud.
+- Se mantiene la regla de no promover automáticamente entradas externas a revisadas.
