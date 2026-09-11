@@ -1,4 +1,4 @@
-# Seguridad — MYTHOS 404 Knowledge Encyclopedia v9.0
+# Seguridad — MYTHOS 404 Knowledge Encyclopedia v9.1.0
 
 ## Modelo
 
@@ -25,7 +25,7 @@ La UI utiliza escapado HTML para contenido dinámico antes de interpolarlo en pl
 
 ## Service Worker
 
-La caché está versionada (`9.0.0`), limitada al scope de la aplicación y elimina versiones anteriores del mismo prefijo durante `activate`.
+La caché está versionada (`9.1.0`), limitada al scope de la aplicación y elimina versiones anteriores del mismo prefijo durante `activate`.
 
 ## Privacidad
 

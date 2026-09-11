@@ -1,7 +1,7 @@
 {
-  "name": "MYTHOS 404 — Knowledge Encyclopedia 9.0",
+  "name": "MYTHOS 404 — Knowledge Encyclopedia 9.1.0",
   "short_name": "MYTHOS 404",
-  "description": "Atlas mundial modular con 5.161 entidades y 62 tradiciones/corpus, con fichas revisadas, documentación externa trazable, discovery y completitud documental.",
+  "description": "Atlas mundial modular con 5.154 entidades y 62 tradiciones/corpus, con fichas revisadas, documentación externa trazable, discovery y completitud documental.",
   "id": "./",
   "start_url": "./#home",
   "scope": "./",

@@ -2,7 +2,7 @@
   "name": "mythos-404-knowledge-encyclopedia",
   "version": "9.1.0",
   "private": true,
-  "description": "Enciclopedia mitológica mundial modular con 5.161 entidades, tres niveles de madurez documental, completitud de fichas y flujo editorial verificable.",
+  "description": "Enciclopedia mitológica mundial modular con 5.154 entidades, tres niveles de madurez documental, completitud de fichas y flujo editorial verificable.",
   "scripts": {
     "validate": "node tools/validate.mjs",
     "test": "node --check js/core.js && node --check js/index.js && node --check js/store.js && node --check js/app.js && node --check sw.js && node tools/validate.mjs",
