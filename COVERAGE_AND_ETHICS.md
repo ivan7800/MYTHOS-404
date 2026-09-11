@@ -1,8 +1,8 @@
-# Cobertura y ética — Knowledge Edition v9.0
+# Cobertura y ética — Knowledge Edition v9.1.0
 
 ## Cobertura no significa totalidad
 
-MYTHOS contiene 5.161 registros organizados en 62 tradiciones/corpus, pero no afirma representar “todos los mitos existentes”. Muchas tradiciones son locales, orales, fragmentarias, cambiantes o vivas.
+MYTHOS contiene 5.154 registros organizados en 62 tradiciones/corpus, pero no afirma representar “todos los mitos existentes”. Muchas tradiciones son locales, orales, fragmentarias, cambiantes o vivas.
 
 ## Cobertura editorial actual
 
@@ -10,7 +10,7 @@ MYTHOS contiene 5.161 registros organizados en 62 tradiciones/corpus, pero no af
 - 181 documentadas externamente con evidencia upstream A/B y revisión MYTHOS pendiente.
 - 3.958 discovery.
 
-La diferencia se muestra en la interfaz. El contador total nunca debe interpretarse como 5.161 artículos académicos terminados.
+La diferencia se muestra en la interfaz. El contador total nunca debe interpretarse como 5.154 artículos académicos terminados.
 
 ## Contenedores de descubrimiento
 

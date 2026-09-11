@@ -1,6 +1,6 @@
 # Auditoría final — MYTHOS 404 Knowledge Expansion v9.1.0
 
-Fecha: 2026-08-13
+Fecha de reauditoría: 2026-09-11
 
 ## 1. Veredicto ejecutivo
 
@@ -88,7 +88,7 @@ Riesgo: conforme aumenten campos y metadatos, las fichas pueden volverse densas.
 
 `npm run build:data` y `npm test` pasan sin errores. El validador cubre estructura, unicidad, rutas, PWA, seguridad estática, Store smoke, shards, chunks, locators y coherencia de versión.
 
-No se concede certificación E2E de navegador real porque Chromium headless no completa sesión en el entorno disponible por DBus/zygote. Esa limitación está declarada y no maquillada.
+No se concede certificación E2E de navegador real porque la política del entorno bloquea la navegación de Chromium headless (`ERR_BLOCKED_BY_ADMINISTRATOR`). Esa limitación está declarada y no maquillada.
 
 ## 7. Seguridad
 

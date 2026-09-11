@@ -1,6 +1,6 @@
 # QA REPORT — MYTHOS 404 Knowledge Encyclopedia v9.1.0
 
-Fecha de validación: 2026-08-13  
+Fecha de revalidación: 2026-09-11  
 Objetivo: comprobar que Knowledge Expansion I es publicable en GitHub Pages, mantiene el corpus y endurece el estándar editorial sin introducir regresiones.
 
 ## 1. Resultado ejecutivo
@@ -121,7 +121,7 @@ Se verifican en código:
 
 ## 9. Limitación E2E del entorno
 
-La validación automatizada del proyecto sí pasa. El entorno disponible no permite certificar como superada una sesión completa de Chromium headless por los fallos DBus/zygote ya observados en esta imagen de ejecución.
+La validación automatizada del proyecto sí pasa. El entorno disponible no permite certificar como superada una sesión completa de Chromium headless: la navegación del navegador automatizado está bloqueada por la política del entorno (`ERR_BLOCKED_BY_ADMINISTRATOR`).
 
 Por tanto quedan por certificar en la URL HTTPS publicada:
 

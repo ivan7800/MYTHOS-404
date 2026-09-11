@@ -96,7 +96,22 @@ if(core&&index){
 const routeMatch=app.match(/const routes = \[([^\]]+)\]/),routes=routeMatch?[...routeMatch[1].matchAll(/'([^']+)'/g)].map(m=>m[1]):[],views=[...html.matchAll(/data-view="([^"]+)"/g)].map(m=>m[1]);for(const v of views)if(!routes.includes(v))fail(`Vista sin ruta JS: ${v}`);for(const r of routes)if(!views.includes(r))fail(`Ruta JS sin vista HTML: ${r}`);if(routes.length)ok(`${routes.length} vistas/rutas coherentes`);
 for(const marker of ["raw.startsWith('entity/')","raw.startsWith('myth/')","raw.startsWith('culture/')"])app.includes(marker)||fail(`Falta deep link ${marker}`);
 for(const marker of ['ensureSearch','ensureCatalog','loadShard','loadNextShard','locatorMap'])store.includes(marker)||fail(`Store v9 incompleto: ${marker}`);if(store.includes('MYTHOS_INDEX_SHARDS'))ok('Store con búsqueda progresiva fragmentada');
-if(manifest){if(!String(manifest.start_url||'').startsWith('./'))fail('manifest.start_url debe ser relativo');if(manifest.scope!=='./')fail('manifest.scope debe ser ./');for(const i of manifest.icons||[])if(!exists(i.src))fail(`Icono inexistente ${i.src}`);ok('Manifest e iconos verificados')}
+if(manifest){
+  if(!String(manifest.start_url||'').startsWith('./'))fail('manifest.start_url debe ser relativo');
+  if(manifest.scope!=='./')fail('manifest.scope debe ser ./');
+  for(const i of manifest.icons||[])if(!exists(i.src))fail(`Icono inexistente ${i.src}`);
+  const expectedCount=index?.counts?.entities||core?.meta?.totalEntities||0;
+  const expectedCountLabel=String(expectedCount).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  if(pkg?.version&&!String(manifest.name||'').includes(pkg.version))fail(`Manifest name desalineado con package ${pkg.version}`);
+  if(expectedCount&&!String(manifest.description||'').includes(expectedCountLabel))fail(`Manifest description no refleja ${expectedCountLabel} entidades`);
+  if(expectedCount&&!String(pkg?.description||'').includes(expectedCountLabel))fail(`package.description no refleja ${expectedCountLabel} entidades`);
+  const coverage=read('COVERAGE_AND_ETHICS.md'),security=read('SECURITY.md');
+  if(pkg?.version&&!coverage.includes(`v${pkg.version}`))fail(`COVERAGE_AND_ETHICS no está alineado con v${pkg.version}`);
+  if(expectedCount&&!coverage.includes(expectedCountLabel))fail(`COVERAGE_AND_ETHICS no refleja ${expectedCountLabel} entidades`);
+  if(pkg?.version&&!security.includes(`v${pkg.version}`))fail(`SECURITY no está alineado con v${pkg.version}`);
+  if(pkg?.version&&!security.includes(`\`${pkg.version}\``))fail(`SECURITY no documenta caché ${pkg.version}`);
+  ok('Manifest, metadatos, documentación e iconos verificados');
+}
 const swVersion=(sw.match(/const VERSION = '([^']+)'/)||[])[1]||'';if(pkg&&swVersion!==pkg.version)fail(`SW ${swVersion} != package ${pkg.version}`);else ok(`Service Worker v${swVersion}`);if(!sw.includes('scopePath')||!sw.includes('cache.match(request)'))fail('Service Worker sin aislamiento explícito de scope/cache actual');else ok('Service Worker aislado por scope y caché de versión');if(/data\/index\/(?:abc|def|ghi|jkl|mnop|qrs|tuv|wxyz)\.js/.test(sw.match(/const CORE = \[[\s\S]*?\];/)?.[0]||''))fail('Los shards no deben precachearse en CORE');else ok('Shards fuera del precache inicial');
 const initial=['index.html','css/styles.css','js/core.js','js/index.js','js/store.js','js/app.js'].reduce((n,f)=>n+size(f),0);console.log(`ℹ Payload bootstrap sin imágenes: ${(initial/1024).toFixed(1)} KiB`);if(initial>900*1024)fail('Payload bootstrap supera 900 KiB');else ok('Payload bootstrap dentro del objetivo Knowledge Edition (<900 KiB)');console.log(`ℹ Índice raíz: ${(size('js/index.js')/1024).toFixed(1)} KiB`);
 let fileCount=0,problematic=[];function walk(dir){for(const it of fs.readdirSync(dir,{withFileTypes:true})){if(/[:*?"<>|\\]/.test(it.name))problematic.push(it.name);if(it.isDirectory())walk(path.join(dir,it.name));else fileCount++;}}walk(root);problematic.length?fail(`Nombres problemáticos: ${problematic.join(', ')}`):ok('Nombres compatibles con Git/GitHub/Windows');if(fileCount>=100)warn(`${fileCount} archivos: objetivo preferente <100`);else ok(`${fileCount} archivos totales (<100)`);
